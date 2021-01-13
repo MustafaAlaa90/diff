@@ -1,0 +1,42 @@
+#!/bin/bash
+#set -x #to show the shell commands
+
+for arg
+do
+case "$1" in
+    --dev )
+        Apptype="$1"
+	;;
+    --utest )
+        Apptype="$1"
+	;;
+esac
+done
+  
+DIRECTORY=$(pwd)
+[ ! -e build ] && mkdir build
+
+[ -e config.cache ] && rm -f config.cache
+
+autoreconf -fi
+rm -rf autom4te*.cache
+rm -f config.h.in~
+
+cd "$DIRECTORY"/build
+
+if [ "$Apptype" == "--utest" ]; then
+    
+    echo "########## Configuring UTest application ##########"
+    TYPE="--enable-utest"
+else
+    TYPE="--enable-dev"
+    if [ "$Apptype" == "--dev" ]; then
+    echo "########## Configuring development application ##########"
+    else
+    echo "########## Not valid Configuring option continue with configuring development application ##########"
+    fi
+fi
+../configure "$TYPE"
+echo "########## Cleaning variables ##########"
+Apptype=""
+echo "########## Configuration Done ##########"
