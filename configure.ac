@@ -25,11 +25,11 @@ AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS(config.h)
 
 if test "$enable_utest" = "yes"; then
-    AC_DEFINE([UTEST],1,[Define to 1 for unit tests testing])
+    AC_DEFINE([TEST],1,[Define to 1 for unit tests testing])
     AC_MSG_NOTICE([Configuration for helloworld Unit Testing])
     
 else
-    AC_DEFINE([DEVELOPMENT],1,[Define to 1 for development code])
+    AC_DEFINE([DEV],1,[Define to 1 for development code])
     AC_MSG_NOTICE([Configuration for helloworld Development])
 fi
 
