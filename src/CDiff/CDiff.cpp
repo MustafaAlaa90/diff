@@ -5,9 +5,11 @@ Copyright (C) 2021 - Mustafa Ala
 
 #include "CDiff.h"
 
-CDiff::CDiff(const std::string& file1, const std::string& file2):m_file1(file1)
+CDiff::CDiff(const std::string& file1, const std::string& file2, const std::string& out):m_file1(file1)
 ,m_file2(file2)
+,m_out(out)
 ,m_init(true)
+,m_writeToFile(false)
 {
     Initialize();
 }
@@ -45,16 +47,24 @@ void CDiff::Initialize()
     {
         m_inputFile1.open(m_file1); // default is open for reading
         m_inputFile2.open(m_file2);
-
         if(!m_inputFile1.is_open() && !m_inputFile2.is_open())
         {
-            CONSOLE_MSG(ZONE_ERROR,"Couldn't open Files <%s> <%s> for reading",m_file1.data(),m_file2.data());
+            CONSOLE_MSG(ZONE_ERROR,"CDiff | Couldn't open Files <%s> <%s> for reading",m_file1.data(),m_file2.data());
             m_init = false;
         }
     }
     else
     {
         m_init = false;
+    }
+    if(!m_out.empty())
+    {
+        CONSOLE_MSG(ZONE_DEBUG,"CDiff | opening of stream");
+        m_outFile.open(m_out.data(),std::ofstream::out | std::ofstream::app | std::ios::binary); //open for write and append
+        if(m_outFile.is_open())
+        {
+            m_writeToFile = true;
+        }
     }
 }
 //--------------------------------------------------------------------------------
@@ -86,124 +96,188 @@ bool CDiff::ReadLines(std::vector <std::string>& vec1,std::vector <std::string>&
             vec2.push_back(str2);
         }
     }
-    CONSOLE_MSG(ZONE_DEBUG,"CDiff | Finished Reading Lines");
-
     return Ret;
 }
 //---------------------------------------------------------------------------------
 void CDiff::PrintReport(std::vector <std::string>& vec1,std::vector <std::string>& vec2)
 {
-    printf("%s\n",std::string(98,'-').c_str());
-    printf("%*s | %*s | %*s |\n",-20,"File Path",-35,m_file1.data(),-35,m_file2.data());
-    printf("%s\n",std::string(98,'-').c_str());
-    printf("%*s | %*lu | %*lu |\n",-20,"Number of lines",-35,vec1.size(),-35,vec2.size());
-    printf("%s\n",std::string(98,'-').c_str());
-    printf("%*s | %*lu | %*lu |\n",-20,"File Size",-35,GetFileSize(vec1),-35,GetFileSize(vec2));
-    printf("%s\n",std::string(98,'-').c_str());
+    std::vector<unsigned long int> mismatch;
+    GetMisMatch(vec1,vec2,mismatch);
+    if(m_writeToFile)
+    {
+        char buf[MAXSIZE];
+        unsigned long int offset =0;
+        offset =sprintf(buf,"%s\n",std::string(118,'-').c_str());
+        offset +=sprintf(buf+offset,"%*s | %*s | %*s |\n",-20,"File Path",-40,m_file1.data(),-50,m_file2.data());
+        offset +=sprintf(buf+offset,"%s\n",std::string(118,'-').c_str());
+        offset +=sprintf(buf+offset,"%*s | %*lu | %*lu |\n",-20,"Number of lines",-40,vec1.size(),-50,vec2.size());
+        offset +=sprintf(buf+offset,"%s\n",std::string(118,'-').c_str());
+        offset +=sprintf(buf+offset,"%*s | %*lu | %*lu |\n",-20,"File Size (Bytes)",-40,GetFileSize(vec1),-50,GetFileSize(vec2));
+        offset +=sprintf(buf+offset,"%s\n",std::string(118,'-').c_str());
+        offset +=sprintf(buf+offset,"mismach found at lines : ");
+        for(auto& mem : mismatch)
+        {
+            offset +=sprintf(buf+offset,"%lu ",mem+1);
+        }
+        offset +=sprintf(buf+offset,"\n");
+        m_outFile.write(buf,offset);
+    }
+    else
+    {
+        printf("%s\n",std::string(118,'-').c_str());
+        printf("%*s | %*s | %*s |\n",-20,"File Path",-40,m_file1.data(),-50,m_file2.data());
+        printf("%s\n",std::string(118,'-').c_str());
+        printf("%*s | %*lu | %*lu |\n",-20,"Number of lines",-40,vec1.size(),-50,vec2.size());
+        printf("%s\n",std::string(118,'-').c_str());
+        printf("%*s | %*lu | %*lu |\n",-20,"File Size (Bytes)",-40,GetFileSize(vec1),-50,GetFileSize(vec2));
+        printf("%s\n",std::string(118,'-').c_str());
+        printf("mismach found at lines : ");
+        for(auto& mem : mismatch)
+        {
+            printf("%lu ",mem+1);
+        }
+        printf("\n");
+    }
 }
 //---------------------------------------------------------------------------------
 bool CDiff::PrintDiff(std::vector <std::string>& vec1,std::vector <std::string>& vec2)
 {
     bool Ret = true;
     std::vector<std::string> result;
-    std::vector<unsigned long int> mismatch;
-    PrintMisMatch(vec1,vec2,mismatch);
-    RunDiffAlgorithm(vec1,vec2,result,mismatch);
+    RunDiffAlgorithm(vec1,vec2,result);
     PrintFilesTime();
-    for(auto& line : result)
+    char* buf = new char[GetFileSize(vec1)+GetFileSize(vec2)+10];
+    memset(buf,0,sizeof(buf));
+    unsigned long int offset=0;
+    if(buf)
     {
-        printf("%s\n",line.data());
+        for(auto& line : result)
+        {
+            offset+=sprintf(buf+offset,"%s\n",line.data());
+        }
+        if(m_writeToFile)
+        {
+            m_outFile.write(buf,offset);
+        }
+        else
+        {
+            printf("%s",buf);
+        }
+        delete[] buf;
     }
 }
 //----------------------------------------------------------------------------
-void CDiff::PrintMisMatch(std::vector <std::string>&vec1,std::vector <std::string>&vec2,std::vector<unsigned long int>& mismatch)
+void CDiff::GetMisMatch(std::vector <std::string>&vec1,std::vector <std::string>&vec2,std::vector<unsigned long int>& mismatch)
 {
     unsigned long int counter = std::min(vec1.size(),vec2.size());
-    printf("Mismatches at line: ");
     for(unsigned long int i=0;i<counter;i++)
     {
         if(vec1[i].compare(vec2[i]) !=0)
         {
-            printf(" %lu ",i+1);
             mismatch.push_back(i);
         }
     }
-    printf("\n");
+    if(vec1.size() > vec2.size())
+    {
+        for(unsigned long int j =vec2.size();j<vec1.size();j++)
+        {
+            mismatch.push_back(j);
+        }
+    }
+    else if (vec1.size() < vec2.size())
+    {
+        for(unsigned long int j =vec1.size();j<vec2.size();j++)
+        {
+            mismatch.push_back(j);
+        }
+    }
 }
 //----------------------------------------------------------------------------
-void CDiff::RunDiffAlgorithm(std::vector<std::string>& vec1,std::vector<std::string>& vec2,std::vector<std::string>& result,std::vector<unsigned long int>& mismatch)
+void CDiff::RunDiffAlgorithm(std::vector<std::string>& vec1,std::vector<std::string>& vec2,std::vector<std::string>& result)
 {
+    unsigned long int offset=0;
+    char buf [MAXSIZE];
     if(vec2.empty() && !vec1.empty())
     {
-        printf("@@ -1,%lu +0,0 @@\n",vec1.size());
+        if(!m_writeToFile)
+        {
+            printf("@@ -1,%lu +0,0 @@\n",vec1.size());
+        }
+        else
+        {
+            offset+=sprintf(buf+offset,"@@ -1,%lu +0,0 @@\n",vec1.size());
+        }
         for(auto& line : vec1)
         {
-            printf("- %s\n",line.data());
+            if(!m_writeToFile)
+            {
+                printf("- %s\n",line.data());
+            }
+            else
+            {
+                offset+=sprintf(buf+offset,"- %s\n",line.data());
+            }  
         }
     }
     else if (!vec2.empty() && vec1.empty())
     {
-        printf("@@ -0,0 +0,%lu @@\n",vec2.size());
+        if(!m_writeToFile)
+        {
+            printf("@@ -0,0 +0,%lu @@\n",vec2.size());
+        }
+        else
+        {
+            offset+=sprintf(buf+offset,"@@ -0,0 +0,%lu @@\n",vec2.size());
+        }
         for(auto& line : vec2)
         {
-            printf("+ %s\n",line.data());
+            
+            if(!m_writeToFile)
+            {
+                printf("+ %s\n",line.data());
+            }
+            else
+            {
+                offset+=sprintf(buf+offset,"+ %s\n",line.data());
+            } 
         }
     }
     else
     {
-        CONSOLE_MSG(ZONE_INFO,"Files are not empty");
-        
-        if(vec1[0].compare(vec2[0])!=0)
+        CONSOLE_MSG(ZONE_DEBUG,"CDiff | Files are not empty");
+        unsigned long int size = std::min(vec1.size(),vec2.size());
+        for(unsigned long int i=0; i<size;i++)
         {
-            result.push_back(std::string("-")+vec1[0]);
-            result.push_back(std::string("+")+vec2[0]);
-        }
-        for(unsigned long int i=1,j=1; i<=vec1.size(),j<vec2.size();i++,j++)
-        {
-            CONSOLE_MSG(ZONE_INFO,"Lines under compare <%s> ///// <%s>",vec1[i].data(),vec2[j].data());
-            if(vec1[i].compare(vec2[j])==0)
+            CONSOLE_MSG(ZONE_DEBUG,"CDiff | Lines under compare <%s> ///// <%s>",vec1[i].data(),vec2[i].data());
+            if(vec1[i].compare(vec2[i])==0)
             {
                 result.push_back(vec1[i]);
             }
             else
             {
-                CONSOLE_MSG(ZONE_INFO,"Found mismatch on line %lu",i+1);
-                if(vec2.size() > (j+1) && vec1.size() > (i+1))
-                {
-                    CONSOLE_MSG(ZONE_INFO,"Safe Size Boundary");
-                    CONSOLE_MSG(ZONE_INFO,"Lines under compare <%s> ///// <%s>",vec1[i+1].data(),vec2[j+1].data());
-                    if( vec1[i+1].compare(vec2[j+1])==0 && vec1[j-1].compare(vec2[j-1])==0 ) //change in file 2
-                    {
-                        result.push_back("-" + vec1[i]);
-                        result.push_back("+" + vec2[i]);
-                    }
-                    else if (vec1[i].compare(vec2[j+1])==0) // addition in file 2
-                    {
-                        result.push_back("+"+vec2[j++]);
-                        result.push_back(vec1[i++]);
-                    }
-                    else if (vec1[i].compare(vec2[j-1])==0) // deletion in file 2
-                    {
-                        result.push_back("-"+vec1[i]);
-                        result.push_back(vec2[j]);
-                    }
-                }
-                else if(vec2.size() == (j+1) && vec1.size() == (i+1))
-                {
-                    result.push_back("-" + vec1[i]);
-                    result.push_back("+" + vec2[i]);
-                }
-                else if (vec1.size() > (i+1))  // end of file 2
-                {
-                    result.push_back("+"+vec1[i]);
-                }
-                else if (vec2.size() > (j+1))  // end of file 1
-                {
-                    result.push_back("-"+vec1[j]);
-                }
+                CONSOLE_MSG(ZONE_DEBUG,"CDiff | Found mismatch on line %lu",i+1);
+                result.push_back("-" + vec1[i]);
+                result.push_back("+" + vec2[i]);
             }
         }
-
+        if(vec1.size() > vec2.size())
+        {
+            for(unsigned long int j =vec2.size();j<vec1.size();j++)
+            {
+                result.push_back("+" + vec1[j]);
+            }
+        }
+        else if (vec1.size() < vec2.size())
+        {
+            for(unsigned long int j =vec1.size();j<vec2.size();j++)
+            {
+                result.push_back("-" + vec2[j]);
+            }
+        }
+    }
+    if(m_writeToFile)
+    {
+        m_outFile.write(buf,offset);
     }
 }
 //-----------------------------------------------------------------------------
@@ -242,16 +316,38 @@ void CDiff::PrintFilesTime()
 {
     char time1[50]={0,};
     char time2[50]={0,};
-    CONSOLE_MSG(ZONE_DEBUG,"Getting Time 1");
+    CONSOLE_MSG(ZONE_DEBUG,"CDiff | Getting Time 1");
     GetModifiedTime(m_file1,time1);
-    CONSOLE_MSG(ZONE_DEBUG,"Getting Time 2");
+    CONSOLE_MSG(ZONE_DEBUG,"CDiff | Getting Time 2");
     GetModifiedTime(m_file2,time2);
-    CONSOLE_MSG(ZONE_DEBUG,"Finished Getting Time");
-    printf("--- %s %s\n",m_file1.data(),time1);
-    printf("+++ %s %s\n",m_file2.data(), time2);
+    CONSOLE_MSG(ZONE_DEBUG,"CDiff | Finished Getting Time");
+    if(!m_writeToFile)
+    {
+        printf("--- %s %s\n",m_file1.data(),time1);
+        printf("+++ %s %s\n",m_file2.data(), time2);
+    }
+    else
+    {
+        char buf[MAXSIZE];
+        unsigned long int offset =0;
+        offset+=sprintf(buf+offset,"--- %s %s\n",m_file1.data(),time1);
+        offset+=sprintf(buf+offset,"+++ %s %s\n",m_file2.data(), time2);
+        m_outFile.write(buf,offset);
+    }
 }
 //---------------------------------------------------------------------------------
 CDiff::~CDiff()
 {
-    CONSOLE_MSG(ZONE_DEBUG,"inside destructor");
+    if(m_outFile.is_open())
+    {
+        m_outFile.close();
+    }
+    if(m_inputFile1.is_open())
+    {
+        m_inputFile1.close();
+    }
+    if(m_inputFile2.is_open())
+    {
+        m_inputFile2.close();
+    }
 }

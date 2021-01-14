@@ -11,6 +11,8 @@ Copyright (C) 2021 - Mustafa Ala
 #include <sys/time.h>
 #include <math.h>   
 
+extern unsigned int zone;
+
 typedef enum
 {
   ZONE_ERROR     = 0x0001,
@@ -37,7 +39,7 @@ void log_handler ( log_level_t level, const char* format, ... );
  * @brief Macros to print on console
  */
 #define CONSOLE_MSG(level, ...) do {\
-    if ((level)<= MAX_CONSOLE_LEVEL)\
+    if ((level)<= zone)\
     {\
       log_handler((level),__VA_ARGS__);\
     }\

@@ -6,7 +6,7 @@ Copyright (C) 2021 - Mustafa Ala
 #define COMMON_H_
 
 
-#define MAX_CONSOLE_LEVEL ZONE_INFO
+
 
 #include "Logger/Logger.h"
 #include "CDiff/CDiff.h"
