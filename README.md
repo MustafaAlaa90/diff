@@ -43,7 +43,7 @@ sudo apt-get install autoconf
 sudo apt-get install libtool
 
 cd diff/
-. ./conf_script --dev  // this will build the application for development
+. ./conf_script --dev  // this will build the application for development and provided by default
 make
 cd src
 diff_app is the application name in diff/build/src
@@ -53,6 +53,8 @@ for example
 ./diff_app ./inputfile1.txt ./inputfile2.txt
 you may need the results in an output file type the following
 ./diff_app ./inputfile1.txt ./inputfile2.txt ./outfile.txt
+
+Note : the code is compiled by any compiler installed on a linux machine
 
 ### Tests
 there is a simple test writtent inside the application source code
