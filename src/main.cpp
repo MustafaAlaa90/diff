@@ -92,9 +92,25 @@ int main( int argc, char* argv[] )
 #endif
 
 #ifdef UTEST
+#include "common.h"
 int main( int argc, char* argv[] )
 {
-  CONSOLE_MSG(ZONE_INFO,"Hellow World! from UTest");
+  printf("Run Simple test for diff application\n");
+  std::ofstream input1,input2;
+  std::string str1,str2;
+  str1 = "line1\nline2\nline3\nline4";
+  str2 = "line1\nline2 modified\nline3 modified\nline4\nline5 added";
+  input1.open("input1.txt",std::ofstream::out | std::ios::binary);
+  input1.write(str1.data(),str1.size());
+  input2.open("input2.txt",std::ofstream::out | std::ios::binary);
+  input2.write(str2.data(),str2.size());
+  input1.close();
+  input2.close();
+  CDiff diff("input1.txt","input2.txt","");
+  if(diff.FindDiff())
+  {
+    printf("Test [OK]\n");
+  }
   return 0;
 }
 
