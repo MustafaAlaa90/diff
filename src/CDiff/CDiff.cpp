@@ -65,6 +65,7 @@ void CDiff::Initialize()
         {
             m_writeToFile = true;
         }
+        // if open output stream fails , will continue printing results on console
     }
 }
 //--------------------------------------------------------------------------------
