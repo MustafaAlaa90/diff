@@ -1,6 +1,6 @@
-bin_PROGRAMS = helloworld
+bin_PROGRAMS = diff_app
 
-helloworld_SOURCES = main.cpp \
+diff_app_SOURCES = main.cpp \
         common.h \
 	config_app.h \
         Logger/Logger.h \
