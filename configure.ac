@@ -2,7 +2,7 @@ AC_PREREQ(2.61)
 
 # Package version
 m4_define(diff_app_version_major, 0)
-m4_define(diff_app_version_minor, 1)
+m4_define(diff_app_version_minor, 0)
 m4_define(diff_app_version_micro, 0)
 
 m4_define([diff_app_version],
