@@ -147,7 +147,7 @@ bool CDiff::PrintDiff(std::vector <std::string>& vec1,std::vector <std::string>&
     std::vector<std::string> result;
     RunDiffAlgorithm(vec1,vec2,result);
     PrintFilesTime();
-    char* buf = new char[GetFileSize(vec1)+GetFileSize(vec2)+10];
+    char* buf = new char[GetFileSize(result)];
     memset(buf,0,sizeof(buf));
     unsigned long int offset=0;
     if(buf)
