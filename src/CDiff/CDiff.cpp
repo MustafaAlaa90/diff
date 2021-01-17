@@ -265,14 +265,14 @@ void CDiff::RunDiffAlgorithm(std::vector<std::string>& vec1,std::vector<std::str
         {
             for(unsigned long int j =vec2.size();j<vec1.size();j++)
             {
-                result.push_back("+" + vec1[j]);
+                result.push_back("-" + vec1[j]);
             }
         }
         else if (vec1.size() < vec2.size())
         {
             for(unsigned long int j =vec1.size();j<vec2.size();j++)
             {
-                result.push_back("-" + vec2[j]);
+                result.push_back("+" + vec2[j]);
             }
         }
     }
