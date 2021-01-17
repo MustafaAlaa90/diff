@@ -106,7 +106,7 @@ void CDiff::PrintReport(std::vector <std::string>& vec1,std::vector <std::string
     GetMisMatch(vec1,vec2,mismatch);
     if(m_writeToFile)
     {
-        char buf[MAXSIZE];
+        char buf[MAXSIZE+mismatch.size()]={0,};
         unsigned long int offset =0;
         offset =sprintf(buf,"%s\n",std::string(118,'-').c_str());
         offset +=sprintf(buf+offset,"%*s | %*s | %*s |\n",-20,"File Path",-40,m_file1.data(),-50,m_file2.data());
@@ -148,7 +148,9 @@ bool CDiff::PrintDiff(std::vector <std::string>& vec1,std::vector <std::string>&
     RunDiffAlgorithm(vec1,vec2,result);
     PrintFilesTime();
     char* buf = new char[GetFileSize(result)];
-    memset(buf,0,sizeof(buf));
+    CONSOLE_MSG(ZONE_DEBUG,"sizeof buf %lu",sizeof(buf));
+    CONSOLE_MSG(ZONE_DEBUG,"sizeof buf %lu",GetFileSize(result));
+    memset(buf,0,GetFileSize(result));
     unsigned long int offset=0;
     if(buf)
     {
@@ -197,7 +199,8 @@ void CDiff::GetMisMatch(std::vector <std::string>&vec1,std::vector <std::string>
 void CDiff::RunDiffAlgorithm(std::vector<std::string>& vec1,std::vector<std::string>& vec2,std::vector<std::string>& result)
 {
     unsigned long int offset=0;
-    char buf [MAXSIZE];
+    char buf [std::max(vec1.size(),vec2.size())];
+    memset(buf,0,std::max(vec1.size(),vec2.size()));
     if(vec2.empty() && !vec1.empty())
     {
         if(!m_writeToFile)

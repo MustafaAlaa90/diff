@@ -11,7 +11,7 @@ Copyright (C) 2021 - Mustafa Ala
 #include <fstream>
 #include <sys/stat.h>
 
-#define MAXSIZE 2048
+#define MAXSIZE 32768
 
 class CDiff
 {
